@@ -1,0 +1,22 @@
+"Cluster","NF","NF_percent","MPNST","MPNST_percent","Total","Total_percent"
+"Cancer-associated fibroblast",15249,27.34,7630,33.59,22879,29.15
+"Schwann cell-derived cancer",6384,11.45,2420,10.65,8804,11.22
+"Tumor-associated macrophage",6421,11.51,2662,11.72,9083,11.57
+"Tumor endothelium",6955,12.47,1144,5.04,8099,10.32
+"T lymphocyte",2379,4.27,1086,4.78,3465,4.41
+"Dendritic cell",2795,5.01,608,2.68,3403,4.34
+"Plasma cell",1890,3.39,1873,8.25,3763,4.79
+"Non-coding RNA cluster",1661,2.98,1167,5.14,2828,3.6
+"Pericyte",1975,3.54,496,2.18,2471,3.15
+"Cytotoxic T cell",1728,3.1,684,3.01,2412,3.07
+"Inflammatory myeloid cell",1653,2.96,740,3.26,2393,3.05
+"Mesenchymal-like cancer cell",1330,2.38,703,3.1,2033,2.59
+"Antigen-presenting cell",1388,2.49,254,1.12,1642,2.09
+"Monocyte",952,1.71,235,1.03,1187,1.51
+"Proliferating cancer cell",488,0.88,540,2.38,1028,1.31
+"NK cell",667,1.2,196,0.86,863,1.1
+"Muscle cell",849,1.52,11,0.05,860,1.1
+"Lymphatic endothelium",499,0.89,117,0.52,616,0.78
+"Melanocyte-like cancer cell",338,0.61,1,0,339,0.43
+"Plasmacytoid dendritic cell",170,0.3,147,0.65,317,0.4
+"Total",55771,100,22714,100,78485,100
