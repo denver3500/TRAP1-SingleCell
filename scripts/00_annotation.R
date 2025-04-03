@@ -59,6 +59,7 @@ plot2 <- FeatureScatter(data.merged, feature1 = "nCount_RNA", feature2 = "nFeatu
 combined_plots <- CombinePlots(plots = list(plot1, plot2))
 ggsave("pictures/qc_scatter_plots.pdf", combined_plots, width = 12, height = 6)
 
+#Subset data based on quality control metrics e.g. remove cells with low or high nFeature_RNA, high nCount_RNA, and high percent.mt
 data.merged <- subset(data.merged, subset = nFeature_RNA > 200 & nFeature_RNA < 9500 & percent.mt < 20)
 data.merged <- FindVariableFeatures(data.merged, nfeatures = 5000)
 

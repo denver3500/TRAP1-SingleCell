@@ -563,3 +563,59 @@ if(length(present_cc_genes) == 0) {
   ggsave(filename = "pictures/COL6_cell_cycle_genes_heatmap.pdf", 
          plot = p_cc_heatmap, width = 14, height = 10)
 }
+
+#----- Compute TRAP1 high/low grouping -----
+# Make sure TRAP1 is present
+if("TRAP1" %in% rownames(schwann_cancer)) {
+  TRAP1_exp <- GetAssayData(schwann_cancer, assay = "RNA", layer = "data")["TRAP1", ]
+  TRAP1_cutoff <- median(TRAP1_exp)
+  schwann_cancer$TRAP1_status <- ifelse(TRAP1_exp > TRAP1_cutoff, "TRAP1-high", "TRAP1-low")
+  print(paste("TRAP1 cutoff:", round(TRAP1_cutoff, 4)))
+} else {
+  stop("TRAP1 not found in the dataset!")
+}
+
+#----- Cell Cycle Gene Analysis based on TRAP1 high vs low -----
+# Define the list of common cell cycle genes
+list_cell_cycle <- "CDK2,CDK4,CDK6,CDK7,CDKN1A,CDKN1B,STAG1,CDKN1C,CDKN2A,CDKN2B,CDKN2C,CDKN2D,ANAPC10,MAD2L2,STAG2,PTTG2,GADD45G,DBF4,YWHAQ,CHEK1,CHEK2,CREBBP,GADD45A,E2F1,E2F2,E2F3,E2F4,E2F5,EP300,ORC6,ORC3,CDC26,ABL1,ANAPC13,SMC1B,SFN,GSK3B,ANAPC2,ANAPC4,HDAC1,HDAC2,MAD2L1,SMAD2,SMAD3,SMAD4,MCM2,MCM3,MCM4,MCM5,MCM6,MCM7,MDM2,MYC,GADD45B,ATM,WEE2,ORC1,ORC2,ORC4,ORC5,PCNA,FZR1,ANAPC5,ANAPC7,ANAPC11,PLK1,ATR,PRKDC,RAD21,RB1,RBL1,RBL2,CCND1,ANAPC1,SKP1,SKP2,,,BUB1,BUB1B,TFDP1,TFDP2,TGFB1,TGFB2,TGFB3,TP53,TTK,SKP1P2,,WEE1,YWHAB,YWHAE,YWHAG,YWHAH,YWHAZ,ZBTB17,SMC1A,CDC7,CDC45,MAD1L1,CUL1,CCNB3,CDC14B,CDC14A,CDC23,CDC16,CCNA2,CCNA1,CCNB1,CCND2,CCND3,CCNE1,CCNH,PKMYT1,SMC3,CCNB2,CCNE2,BUB3,PTTG1,ESPL1,CDK1,CDC6,CDC20,CDC25A,CDC25B,CDC25C,CDC27,RBX1"
+cell_cycle_genes <- unlist(strsplit(list_cell_cycle, split = ","))
+cell_cycle_genes <- trimws(cell_cycle_genes)
+cell_cycle_genes <- cell_cycle_genes[cell_cycle_genes != ""]
+
+# Check which cell cycle genes exist in your dataset
+present_cc_genes <- cell_cycle_genes[cell_cycle_genes %in% rownames(schwann_cancer)]
+if(length(present_cc_genes) == 0) {
+  print("No cell cycle genes found in the dataset.")
+} else {
+  print(paste("Found", length(present_cc_genes), "cell cycle genes in the dataset for TRAP1-based analysis."))
+  
+  # Create a dotplot for cell cycle genes grouped by TRAP1_status
+  p_cellcycle_TRAP1 <- DotPlot(schwann_cancer, 
+                               features = present_cc_genes, 
+                               group.by = "TRAP1_status",
+                               cols = c("lightgrey", "blue"),
+                               dot.scale = 8,
+                               scale = FALSE) + 
+                      RotatedAxis() +
+                      ggtitle("Cell Cycle Genes by TRAP1 Status") +
+                      theme(plot.title = element_text(size = 14, face = "bold"),
+                            axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  # Save the dotplot
+  plot_width <- max(12, length(present_cc_genes) * 0.4)
+  ggsave(filename = "pictures/TRAP1_cell_cycle_genes_dotplot.pdf", 
+         plot = p_cellcycle_TRAP1, width = plot_width, height = 7)
+  
+  # Create a heatmap for cell cycle genes using TRAP1_status grouping
+  p_cc_heatmap_TRAP1 <- DoHeatmap(schwann_cancer, 
+                                  features = present_cc_genes, 
+                                  group.by = "TRAP1_status",
+                                  disp.min = -2.5, 
+                                  disp.max = 2.5) + 
+                        ggtitle("Cell Cycle Genes Heatmap (TRAP1 high vs low)") +
+                        theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Save the heatmap
+  ggsave(filename = "pictures/TRAP1_cell_cycle_genes_heatmap.pdf", 
+         plot = p_cc_heatmap_TRAP1, width = 14, height = 10)
+}
