@@ -6,7 +6,8 @@ library(Seurat)
 library(ggplot2)
 library(stringr)
 library(patchwork)
-library(reshape2) # For melt function used in correlation heatmap
+library(reshape2)
+library(ggrepel)
 
 # Create directories for outputs if they don't exist
 if (!dir.exists("pictures")) dir.create("pictures")
@@ -619,3 +620,52 @@ if(length(present_cc_genes) == 0) {
   ggsave(filename = "pictures/TRAP1_cell_cycle_genes_heatmap.pdf", 
          plot = p_cc_heatmap_TRAP1, width = 14, height = 10)
 }
+
+# Ensure the active identities are set to COL6_status
+Idents(schwann_cancer) <- "COL6_status"
+print(unique(Idents(schwann_cancer)))  # Should print "COL6-high" and "COL6-low"
+
+# DEG Analysis for COL6 high vs low
+deg_COL6_high_vs_low <- FindMarkers(schwann_cancer, 
+                                    ident.1 = "COL6-high", 
+                                    ident.2 = "COL6-low", 
+                                    min.pct = 0.25)
+deg_COL6_high_vs_low$gene <- rownames(deg_COL6_high_vs_low)
+
+# Remove the COL6 genes from the DEG results
+col6_genes_to_remove <- c("COL6A1", "COL6A2", "COL6A3")
+deg_COL6_no_COL6 <- deg_COL6_high_vs_low[!rownames(deg_COL6_high_vs_low) %in% col6_genes_to_remove, ]
+deg_COL6_no_COL6$gene <- rownames(deg_COL6_no_COL6)
+
+# Save DEG table without COL6 genes
+write.csv(deg_COL6_no_COL6, "statistics/COL6_high_vs_low_DEGs_no_COL6_schwann_cancer.csv", row.names = FALSE)
+
+# Filter for significant DEGs (adjusted p-value < 0.05)
+sig_deg_COL6_no_COL6 <- subset(deg_COL6_no_COL6, p_val_adj < 0.05)
+
+# Order by absolute log2 Fold Change and take the top 100 genes
+top100_COL6_no_COL6 <- head(sig_deg_COL6_no_COL6[order(-abs(sig_deg_COL6_no_COL6$avg_log2FC)), ], 100)
+
+# Create volcano plot (plot all points and label only the top 100 significant genes)
+
+p_volcano_COL6 <- ggplot(deg_COL6_no_COL6, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
+  geom_point(alpha = 0.5) +
+  geom_point(data = sig_deg_COL6_no_COL6, color = "red", alpha = 0.7) +
+  geom_text_repel(data = top100_COL6_no_COL6, 
+                  aes(label = gene),
+                  size = 2.5,                    # slightly smaller label size
+                  box.padding   = unit(0.5, "lines"),
+                  max.overlaps = 100,
+                  point.padding = unit(0.5, "lines"),
+                  segment.color = 'grey50',
+                  force = 2) +                    # increases repelling force
+  theme_minimal() +
+  ggtitle("COL6 DEG Volcano Plot (High vs Low) without COL6A1/2/3") +
+  xlab("log2 Fold Change") +
+  ylab("-log10 Adjusted P-value")
+  
+ggsave("pictures/COL6_DEG_volcano_top100_no_COL6_schwann_cancer.pdf", 
+       p_volcano_COL6, width = 8, height = 7)
+
+# Save the volcano plot as a PDF
+ggsave("pictures/COL6_DEG_volcano_top100_no_COL6_schwann_cancer.pdf", p_volcano_COL6, width = 8, height = 7)

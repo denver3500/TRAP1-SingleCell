@@ -6,6 +6,7 @@ library(Seurat)
 library(ggplot2)
 library(stringr)
 library(patchwork)
+library(ggrepel)
 
 # Create directories for outputs if they don't exist
 if (!dir.exists("pictures")) dir.create("pictures")
@@ -336,19 +337,49 @@ if(length(all_top_genes) > 0) {
 #-----------------------------------------------
 # 8. Find all differentially expressed genes
 #-----------------------------------------------
+# Ensure the active identities are set for TRAP1 high/low in your schwann_cancer object
+Idents(schwann_cancer) <- "TRAP1_status"
+print(unique(Idents(schwann_cancer)))  # should show "TRAP1-high" and "TRAP1-low"
 
-print("Finding all differentially expressed genes...")
-# The FindMarkers function can still work with normalized but unscaled data
-all_degs <- FindMarkers(schwann_cancer, 
-                       ident.1 = "TRAP1-high", 
-                       ident.2 = "TRAP1-low",
-                       min.pct = 0.25)
+# DEG Analysis for TRAP1-based grouping (High vs Low)
+deg_TRAP1_high_vs_low <- FindMarkers(schwann_cancer, 
+                                     ident.1 = "TRAP1-high", 
+                                     ident.2 = "TRAP1-low", 
+                                     min.pct = 0.25)
+deg_TRAP1_high_vs_low$gene <- rownames(deg_TRAP1_high_vs_low)
+write.csv(deg_TRAP1_high_vs_low, "statistics/TRAP1_high_vs_low_DEGs_schwann_cancer.csv", row.names = FALSE)
 
-# Add gene names as column
-all_degs$gene <- rownames(all_degs)
+# DEG for TRAP1-low vs TRAP1-high
+deg_TRAP1_low_vs_high <- FindMarkers(schwann_cancer, 
+                                     ident.1 = "TRAP1-low", 
+                                     ident.2 = "TRAP1-high", 
+                                     min.pct = 0.25)
+deg_TRAP1_low_vs_high$gene <- rownames(deg_TRAP1_low_vs_high)
+write.csv(deg_TRAP1_low_vs_high, "statistics/TRAP1_low_vs_high_DEGs_schwann_cancer.csv", row.names = FALSE)
 
-# Save all DEGs
-write.csv(all_degs, "statistics/TRAP1_high_vs_low_all_DEGs.csv", row.names = FALSE)
-print(paste("Found", nrow(all_degs), "total differentially expressed genes"))
+# --- Volcano plot for top 100 DEG genes (TRAP1-high vs TRAP1-low) ---
 
-print("Analysis complete!")
+# Remove TRAP1 gene from DEG results before plotting
+deg_TRAP1_no_TRAP1 <- deg_TRAP1_high_vs_low[rownames(deg_TRAP1_high_vs_low) != "TRAP1", ]
+deg_TRAP1_no_TRAP1$gene <- rownames(deg_TRAP1_no_TRAP1)
+
+# Filter for significant DEGs (adjusted p-value < 0.05) without TRAP1
+sig_deg_TRAP1_no_TRAP1 <- subset(deg_TRAP1_no_TRAP1, p_val_adj < 0.05)
+
+# Order by absolute log2FC and take the top 100 
+top100_TRAP1_no_TRAP1 <- head(sig_deg_TRAP1_no_TRAP1[order(-abs(sig_deg_TRAP1_no_TRAP1$avg_log2FC)), ], 100)
+
+# Create volcano plot using the DEG results without TRAP1, but label only the top 100 genes
+p_volcano_TRAP1 <- ggplot(deg_TRAP1_no_TRAP1, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
+  geom_point(alpha = 0.5) +
+  geom_point(data = sig_deg_TRAP1_no_TRAP1, color = "red", alpha = 0.7) +
+  geom_text_repel(data = top100_TRAP1_no_TRAP1, aes(label = gene), size = 3, max.overlaps = Inf) +
+  theme_minimal() +
+  ggtitle("TRAP1 DEG Volcano Plot (High vs Low) without TRAP1") +
+  xlab("log2 Fold Change") +
+  ylab("-log10 Adjusted P-value")
+
+ggsave("pictures/TRAP1_DEG_volcano_top100_noTRAP1_schwann_cancer.pdf", 
+       p_volcano_TRAP1, width = 8, height = 7)
+
+cat("TRAP1 DEG volcano plot (excluding TRAP1 gene) complete for Schwann cell-derived cancer!\n")
