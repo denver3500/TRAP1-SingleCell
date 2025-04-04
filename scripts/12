@@ -1,17 +1,29 @@
-library(Seurat)
-library(ggplot2)
-library(patchwork)
+# Load required libraries
+if (!require(Seurat)) {
+  install.packages("Seurat")
+  library(Seurat)
+}
+if (!require(ggplot2)) {
+  install.packages("ggplot2")
+  library(ggplot2)
+}
+if (!require(patchwork)) {
+  install.packages("patchwork")
+  library(patchwork)
+}
 
 # Load the pre-processed Seurat object
 data.merged <- readRDS("data_mpnst.rds")
 
-# Subset to only MPNST cells based on orig.ident
-print("Subsetting MPNST cells...")
-mpnst_only <- subset(data.merged, subset = orig.ident == "MPNST")
-print(paste("Total MPNST cells:", ncol(mpnst_only)))
-
-# Preserve cell type annotations from the full merged object
-Idents(mpnst_only) <- Idents(data.merged)
+# Optionally subset for MPNST cells while keeping the original UMAP data
+# (Assumes that the metadata column 'sample' exists and contains "mpnst")
+if ("sample" %in% colnames(data.merged@meta.data)) {
+  mpnst_data <- subset(data.merged, subset = sample == "mpnst")
+  message("MPNST subset created with ", ncol(mpnst_data), " cells.")
+} else {
+  message("Metadata column 'sample' not found. Continuing with full dataset.")
+  mpnst_data <- data.merged
+}
 
 # Create the cluster UMAP plot (left panel) from the full object
 p_cluster <- DimPlot(data.merged, reduction = "umap",
@@ -31,10 +43,10 @@ if (!dir.exists(picture_folder)) {
 # List of genes to visualize
 gene_list <- c("COL6A1", "COL6A2", "COL6A3")
 
-# Loop over the genes to create and save side-by-side UMAP plots using the MPNST subset
+# Loop over the genes to create and save side-by-side UMAP plots
 for (gene in gene_list) {
   # Create feature plot (gene expression) UMAP for the current gene from the MPNST subset
-  p_feature <- FeaturePlot(mpnst_only,
+  p_feature <- FeaturePlot(mpnst_data,
                            features = gene,
                            reduction = "umap",
                            min.cutoff = "q5",
